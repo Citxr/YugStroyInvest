@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 288fd00847c8
-Revises: 
-Create Date: 2025-09-20 01:17:23.714564
+Revision ID: 1bdc04fcef43
+Revises: c21ade945052
+Create Date: 2025-09-22 21:58:32.988325
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '288fd00847c8'
-down_revision: Union[str, Sequence[str], None] = None
+revision: str = '1bdc04fcef43'
+down_revision: Union[str, Sequence[str], None] = 'c21ade945052'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -26,7 +26,7 @@ def upgrade() -> None:
     sa.Column('username', sa.String(), nullable=True),
     sa.Column('email', sa.String(), nullable=True),
     sa.Column('hashed_password', sa.String(), nullable=True),
-    sa.Column('role', sa.Enum('ENGINEER', 'MANAGER', 'CLIENT', name='userrole'), nullable=True),
+    sa.Column('role', sa.Enum('ENGINEER', 'MANAGER', 'CLIENT', 'ADMIN', name='userrole'), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
@@ -36,11 +36,11 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=True),
     sa.Column('user_engineer_id', sa.Integer(), nullable=True),
-    sa.Column('user_manager_id', sa.Integer(), nullable=True),
+    sa.Column('user_admin_id', sa.Integer(), nullable=True),
     sa.Column('user_client_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['user_admin_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['user_client_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['user_engineer_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['user_manager_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_companies_id'), 'companies', ['id'], unique=False)

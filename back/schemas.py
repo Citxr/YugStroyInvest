@@ -13,7 +13,6 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-
 class User(UserBase):
     id: int
 
@@ -45,7 +44,6 @@ class CompanyCreate(CompanyBase):
         from_attributes = True
 
 class ProjectCreate(ProjectBase):
-    user_manager_id: Optional[int] = None
     company_id: Optional[int] = None
     engineer_ids: Optional[List[int]] = None
 
@@ -53,7 +51,6 @@ class ProjectCreate(ProjectBase):
         from_attributes = True
 
 class DefectCreate(DefectBase):
-    user_engineer_id: Optional[int] = None
     project_id: Optional[int] = None
 
     class Config:
