@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from back import schemas, models
@@ -16,3 +16,18 @@ async def create_defect(defect: schemas.DefectCreate, db: Session = Depends(get_
     db.commit()
     db.refresh(db_defect)
     return db_defect
+
+@router.delete("/{defect_id}")
+@require_role(models.UserRole.ENGINEER)
+async def delete_defect(defect_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_defect = db.query(models.Defect).filter(
+        models.Defect.id == defect_id,
+        models.Defect.user_engineer_id == current_user.id
+    ).first()
+
+    if not db_defect:
+        raise HTTPException(status_code=404, detail="Дефект не найдена")
+
+    db.delete(db_defect)
+    db.commit()
+    return {"message": "Дефект удален"}

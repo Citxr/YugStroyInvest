@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from back import schemas, models
@@ -18,16 +18,28 @@ async def create_defect(project: schemas.ProjectCreate, db: Session = Depends(ge
     db.refresh(db_project)
 
     if project.engineer_ids:
-        # Получаем объекты инженеров из базы
         engineers = db.query(models.User).filter(
             models.User.id.in_(project.engineer_ids),
-            models.User.role == models.UserRole.ENGINEER  # Проверяем что это инженеры
+            models.User.role == models.UserRole.ENGINEER
         ).all()
 
-        # Добавляем связь через relationship
-        db_project.user_engineer.extend(engineers)
+        db_project.engineers.extend(engineers)
         db.commit()
         db.refresh(db_project)
 
-
     return db_project
+
+@router.delete("/{project_id}")
+@require_role(models.UserRole.MANAGER)
+async def delete_project(project_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    db_project = db.query(models.Project).filter(
+        models.Project.id == project_id,
+        models.Project.user_manager_id == current_user.id
+    ).first()
+
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Проект не найдена")
+
+    db.delete(db_project)
+    db.commit()
+    return {"message": "Проект удалена"}

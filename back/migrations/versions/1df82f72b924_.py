@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1bdc04fcef43
-Revises: c21ade945052
-Create Date: 2025-09-22 21:58:32.988325
+Revision ID: 1df82f72b924
+Revises: 9dfa8d76b83c
+Create Date: 2025-09-24 01:37:08.223831
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1bdc04fcef43'
-down_revision: Union[str, Sequence[str], None] = 'c21ade945052'
+revision: str = '1df82f72b924'
+down_revision: Union[str, Sequence[str], None] = '9dfa8d76b83c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -38,9 +38,11 @@ def upgrade() -> None:
     sa.Column('user_engineer_id', sa.Integer(), nullable=True),
     sa.Column('user_admin_id', sa.Integer(), nullable=True),
     sa.Column('user_client_id', sa.Integer(), nullable=True),
+    sa.Column('user_manager_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['user_admin_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['user_client_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['user_engineer_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_manager_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_companies_id'), 'companies', ['id'], unique=False)
@@ -49,7 +51,7 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=True),
     sa.Column('user_manager_id', sa.Integer(), nullable=True),
     sa.Column('company_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ),
+    sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_manager_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -59,18 +61,16 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=True),
     sa.Column('user_engineer_id', sa.Integer(), nullable=True),
     sa.Column('project_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ),
+    sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_engineer_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_defects_id'), 'defects', ['id'], unique=False)
     op.create_table('projects_engineers',
-    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('project_id', sa.Integer(), nullable=True),
     sa.Column('user_engineer_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ),
-    sa.ForeignKeyConstraint(['user_engineer_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_engineer_id'], ['users.id'], ondelete='CASCADE')
     )
     # ### end Alembic commands ###
 

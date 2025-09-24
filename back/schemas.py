@@ -1,9 +1,6 @@
 from typing import Optional, List
-
 from pydantic import BaseModel, EmailStr
 from back.models import UserRole
-
-
 
 class UserBase(BaseModel):
     username: str
@@ -36,12 +33,20 @@ class DefectBase(BaseModel):
     name: str
 
 
+
 class CompanyCreate(CompanyBase):
     user_engineer_id: Optional[int] = None
     user_client_id: Optional[int] = None
+    user_manager_id: Optional[int] = None
 
     class Config:
         from_attributes = True
+
+# class CompanyAddEngineers(CompanyBase):
+
+
+
+
 
 class ProjectCreate(ProjectBase):
     company_id: Optional[int] = None
