@@ -12,7 +12,7 @@ router = APIRouter(prefix="/project", tags=["project"])
 @router.post("", response_model=schemas.ProjectCreate)
 @require_role(models.UserRole.MANAGER)
 async def create_defect(project: schemas.ProjectCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    db_project = models.Project(name=project.name,user_manager_id=current_user.id, company_id=project.company_id)
+    db_project = models.Project(name=project.name, user_manager_id=current_user.id, company_id=project.company_id)
     db.add(db_project)
     db.commit()
     db.refresh(db_project)

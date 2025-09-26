@@ -6,12 +6,16 @@ class UserBase(BaseModel):
     username: str
     email: EmailStr
     role: UserRole
+    company_id: Optional[int] = None
 
 class UserCreate(UserBase):
     password: str
 
 class User(UserBase):
     id: int
+
+    class Config:
+        from_attributes = True
 
 class UserInDB(User):
     hashed_password: str
@@ -32,21 +36,10 @@ class ProjectBase(BaseModel):
 class DefectBase(BaseModel):
     name: str
 
-
-
 class CompanyCreate(CompanyBase):
-    user_engineer_id: Optional[int] = None
-    user_client_id: Optional[int] = None
-    user_manager_id: Optional[int] = None
 
     class Config:
         from_attributes = True
-
-# class CompanyAddEngineers(CompanyBase):
-
-
-
-
 
 class ProjectCreate(ProjectBase):
     company_id: Optional[int] = None
@@ -57,6 +50,18 @@ class ProjectCreate(ProjectBase):
 
 class DefectCreate(DefectBase):
     project_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class AddUserToCompany(BaseModel):
+    user_id: int
+
+class UserToCompanyResponse(BaseModel):
+    message: str
+    user_id: int
+    company_id: int
+    user_role: str
 
     class Config:
         from_attributes = True

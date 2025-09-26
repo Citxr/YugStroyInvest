@@ -23,29 +23,18 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(Enum(UserRole))
+    company_id = Column(Integer, ForeignKey("companies.id"))
 
-    # Убрать engineers_projects и использовать только projects
+    company = relationship("Company", back_populates="users")
     projects = relationship("Project", secondary=projects_engineers, back_populates="engineers")
-    projects_as_manager = relationship("Project", back_populates="manager", foreign_keys="Project.user_manager_id")
-    company_as_admin = relationship("Company", back_populates="admin", foreign_keys="Company.user_admin_id")
-    company_as_engineer = relationship("Company", back_populates="engineer", foreign_keys="Company.user_engineer_id")
-    company_as_client = relationship("Company", back_populates="client", foreign_keys="Company.user_client_id")
-    company_as_manager = relationship("Company", back_populates="manager", foreign_keys="Company.user_manager_id")
     defect_as_engineer = relationship("Defect", back_populates="engineer", foreign_keys="Defect.user_engineer_id")
 
 class Company(Base):
     __tablename__ = "companies"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
-    user_engineer_id = Column(Integer, ForeignKey("users.id"))
-    user_admin_id = Column(Integer, ForeignKey("users.id"))
-    user_client_id = Column(Integer, ForeignKey("users.id"))
-    user_manager_id = Column(Integer, ForeignKey("users.id"))
 
-    engineer = relationship("User", back_populates="company_as_engineer", foreign_keys=[user_engineer_id])
-    admin = relationship("User", back_populates="company_as_admin", foreign_keys=[user_admin_id])
-    client = relationship("User", back_populates="company_as_client", foreign_keys=[user_client_id])
-    manager = relationship("User", back_populates="company_as_manager", foreign_keys=[user_manager_id])
+    users = relationship("User", back_populates="company")
     projects = relationship("Project", back_populates="company", cascade="all, delete-orphan")
 
 class Project(Base):
@@ -55,9 +44,9 @@ class Project(Base):
     user_manager_id = Column(Integer, ForeignKey("users.id"))
     company_id = Column(Integer, ForeignKey("companies.id", ondelete='CASCADE'))
 
+    manager = relationship("User", back_populates="projects", foreign_keys=[user_manager_id])
     engineers = relationship("User", secondary=projects_engineers, back_populates="projects")
-    manager = relationship("User", back_populates="projects_as_manager", foreign_keys=[user_manager_id])
-    company = relationship("Company", back_populates="projects")
+    company = relationship("Company", back_populates="projects", foreign_keys=[company_id])
     defects = relationship("Defect", back_populates="project", cascade="all, delete-orphan")
 
 class Defect(Base):
@@ -68,4 +57,4 @@ class Defect(Base):
     project_id = Column(Integer, ForeignKey("projects.id", ondelete='CASCADE'))
 
     engineer = relationship("User", back_populates="defect_as_engineer", foreign_keys=[user_engineer_id])
-    project = relationship("Project", back_populates="defects")
+    project = relationship("Project", back_populates="defects", foreign_keys=[project_id])
