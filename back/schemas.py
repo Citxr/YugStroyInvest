@@ -67,13 +67,53 @@ class UserToCompanyResponse(BaseModel):
         from_attributes = True
 
 
-class CompanyWithStats(BaseModel):
+class DefectOut(BaseModel):
     id: int
     name: str
-    users_count: int
-    projects_count: int
-    managers_count: int
-    engineers_count: int
+    project_id: int
+    engineer_id: Optional[int]
 
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+
+class EngineerOut(BaseModel):
+    id: int
+    username: str
+    email: str
+    defects: List[DefectOut] = []
+
+    class Config:
+        orm_mode = True
+
+
+class ManagerOut(BaseModel):
+    id: int
+    username: str
+    email: str
+    projects: List[str] = []  # только имена проектов
+
+    class Config:
+        orm_mode = True
+
+
+class ProjectOut(BaseModel):
+    id: int
+    name: str
+    manager_id: int
+    engineers: List[EngineerOut] = []
+    defects: List[DefectOut] = []
+
+    class Config:
+        orm_mode = True
+
+
+class CompanyFullOut(BaseModel):
+    id: int
+    name: str
+    projects: List[ProjectOut] = []
+    managers: List[ManagerOut] = []
+    engineers: List[EngineerOut] = []
+
+    class Config:
+        orm_mode = True

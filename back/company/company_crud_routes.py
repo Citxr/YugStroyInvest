@@ -1,13 +1,12 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, case
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from back import schemas, models
 from back.auth import auth
 from back.database import get_db
 from back.decorators import require_role
+from back.models import Company, Project, Defect, UserRole
+from back.schemas import CompanyFullOut
 
 router = APIRouter(prefix="/company", tags=["company"])
 
@@ -17,9 +16,6 @@ async def create_company(company: schemas.CompanyCreate, db: Session = Depends(g
     db_company = models.Company(name=company.name)
     db.add(db_company)
     db.commit()
-    db.refresh(db_company)
-    current_user.company_id = db_company.id
-    db.commit()
     return db_company
 
 @router.delete("/{company_id}")
@@ -28,16 +24,22 @@ async def delete_company(company_id: int, db: Session = Depends(get_db), current
     db_company = db.query(models.Company).filter(
         models.Company.id == company_id
     ).first()
-    if current_user.company_id != company_id:
-        raise HTTPException(status_code=403, detail="Недостаточно прав для удаления этой компании")
 
     if not db_company:
         raise HTTPException(status_code=404, detail="Компания не найдена")
 
-    db.delete(db_company)
-    db.commit()
-    return {"message": "Компания удалена"}
+    try:
+        db.delete(db_company)
+        db.commit()
 
+        return {"message": "Компания удалена"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при удалении компании: {str(e)}"
+        )
 
 @router.post("/{company_id}/users", response_model=schemas.UserToCompanyResponse)
 @require_role(models.UserRole.ADMIN)
@@ -54,12 +56,6 @@ async def add_user_to_company(
 
     if not db_company:
         raise HTTPException(status_code=404, detail="Компания не найдена")
-
-    if current_user.company_id != company_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Недостаточно прав. Вы не являетесь администратором этой компании"
-        )
 
     user_to_add = db.query(models.User).filter(
         models.User.id == user_data.user_id
@@ -104,37 +100,95 @@ async def add_user_to_company(
         )
 
 
-@router.get("/my-companies", response_model=List[schemas.CompanyWithStats])
-@require_role(models.UserRole.ADMIN)
-async def get_my_companies(
-    db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100
-):
+@router.get("/my-companies", response_model=CompanyFullOut)
+@require_role(models.UserRole.CLIENT)
+async def get_full_company_info(company_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
 
-    companies_with_stats = db.query(
-        models.Company,
-        func.count(models.User.id).label('users_count'),
-        func.count(models.Project.id).label('projects_count'),
-        func.count(case((models.User.role == models.UserRole.MANAGER, 1))).label('managers_count'),
-        func.count(case((models.User.role == models.UserRole.ENGINEER, 1))).label('engineers_count')
-    ).outerjoin(
-        models.User, models.User.company_id == models.Company.id
-    ).outerjoin(
-        models.Project, models.Project.company_id == models.Company.id
-    ).group_by(
-        models.Company.id
-    ).offset(skip).limit(limit).all()
+    company = (
+        db.query(Company)
+        .options(
+            joinedload(Company.projects)
+            .joinedload(Project.engineers),
+            joinedload(Company.projects)
+            .joinedload(Project.defects)
+            .joinedload(Defect.engineer),
+            joinedload(Company.users),
+        )
+        .filter(Company.id == company_id)
+        .first()
+    )
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
 
-    result = []
-    for company, users_count, projects_count, managers_count, engineers_count in companies_with_stats:
-        result.append(schemas.CompanyWithStats(
-            id=company.id,
-            name=company.name,
-            users_count=users_count,
-            projects_count=projects_count,
-            managers_count=managers_count,
-            engineers_count=engineers_count
-        ))
+    # Список менеджеров
+    managers = [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "projects": [p.name for p in u.managed_projects],
+        }
+        for u in company.users if u.role == UserRole.MANAGER
+    ]
 
-    return result
+    # Список инженеров
+    engineers = [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "defects": [
+                {
+                    "id": d.id,
+                    "name": d.name,
+                    "project_id": d.project_id,
+                    "engineer_id": d.user_engineer_id,
+                }
+                for d in u.defect_as_engineer
+            ],
+        }
+        for u in company.users if u.role == UserRole.ENGINEER
+    ]
+
+    # Список проектов
+    projects = []
+    for p in company.projects:
+        projects.append({
+            "id": p.id,
+            "name": p.name,
+            "manager_id": p.user_manager_id,
+            "engineers": [
+                {
+                    "id": e.id,
+                    "username": e.username,
+                    "email": e.email,
+                    "defects": [
+                        {
+                            "id": d.id,
+                            "name": d.name,
+                            "project_id": d.project_id,
+                            "engineer_id": d.user_engineer_id,
+                        }
+                        for d in e.defect_as_engineer if d.project_id == p.id
+                    ],
+                }
+                for e in p.engineers
+            ],
+            "defects": [
+                {
+                    "id": d.id,
+                    "name": d.name,
+                    "project_id": d.project_id,
+                    "engineer_id": d.user_engineer_id,
+                }
+                for d in p.defects
+            ]
+        })
+
+    return {
+        "id": company.id,
+        "name": company.name,
+        "projects": projects,
+        "managers": managers,
+        "engineers": engineers,
+    }

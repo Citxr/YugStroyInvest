@@ -11,23 +11,26 @@ router = APIRouter(prefix="/project", tags=["project"])
 
 @router.post("", response_model=schemas.ProjectCreate)
 @require_role(models.UserRole.MANAGER)
-async def create_defect(project: schemas.ProjectCreate,
+async def create_project(project: schemas.ProjectCreate,
                         db: Session = Depends(get_db),
                         current_user: models.User = Depends(auth.get_current_user)):
-    db_project = models.Project(name=project.name, user_manager_id=current_user.id, company_id=project.company_id)
+    db_project = models.Project(
+        name=project.name,
+        user_manager_id=current_user.id,
+        company_id=project.company_id
+    )
     db.add(db_project)
-    db.commit()
-    db.refresh(db_project)
 
     if project.engineer_ids:
         engineers = db.query(models.User).filter(
             models.User.id.in_(project.engineer_ids),
-            models.User.role == models.UserRole.ENGINEER
+            models.User.role == models.UserRole.ENGINEER,
+            models.User.company_id == current_user.company_id
         ).all()
-
         db_project.engineers.extend(engineers)
-        db.commit()
-        db.refresh(db_project)
+
+    db.commit()
+    db.refresh(db_project)
 
     return db_project
 
@@ -46,7 +49,7 @@ async def delete_project(project_id: int,
 
     db.delete(db_project)
     db.commit()
-    return {"message": "Проект удалена"}
+    return {"message": "Проект удалён"}
 
 @router.get("/my-projects")
 @require_role(models.UserRole.MANAGER)
@@ -81,3 +84,4 @@ async def get_my_project(project_id: int,
         )
 
     return project
+

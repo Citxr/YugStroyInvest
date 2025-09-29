@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b3b7300dce92
-Revises: 74aa3f578012
-Create Date: 2025-09-26 21:50:54.522645
+Revision ID: d0b6d43e0d71
+Revises: 
+Create Date: 2025-09-29 21:07:24.022675
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b3b7300dce92'
-down_revision: Union[str, Sequence[str], None] = '74aa3f578012'
+revision: str = 'd0b6d43e0d71'
+down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -61,10 +61,11 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_defects_id'), 'defects', ['id'], unique=False)
     op.create_table('projects_engineers',
-    sa.Column('project_id', sa.Integer(), nullable=True),
-    sa.Column('user_engineer_id', sa.Integer(), nullable=True),
+    sa.Column('project_id', sa.Integer(), nullable=False),
+    sa.Column('user_engineer_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['user_engineer_id'], ['users.id'], ondelete='CASCADE')
+    sa.ForeignKeyConstraint(['user_engineer_id'], ['users.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('project_id', 'user_engineer_id')
     )
     # ### end Alembic commands ###
 
