@@ -1,4 +1,7 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func, case
 from sqlalchemy.orm import Session
 
 from back import schemas, models
@@ -99,3 +102,39 @@ async def add_user_to_company(
             status_code=500,
             detail=f"Ошибка при добавлении пользователя в компанию: {str(e)}"
         )
+
+
+@router.get("/my-companies", response_model=List[schemas.CompanyWithStats])
+@require_role(models.UserRole.ADMIN)
+async def get_my_companies(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100
+):
+
+    companies_with_stats = db.query(
+        models.Company,
+        func.count(models.User.id).label('users_count'),
+        func.count(models.Project.id).label('projects_count'),
+        func.count(case((models.User.role == models.UserRole.MANAGER, 1))).label('managers_count'),
+        func.count(case((models.User.role == models.UserRole.ENGINEER, 1))).label('engineers_count')
+    ).outerjoin(
+        models.User, models.User.company_id == models.Company.id
+    ).outerjoin(
+        models.Project, models.Project.company_id == models.Company.id
+    ).group_by(
+        models.Company.id
+    ).offset(skip).limit(limit).all()
+
+    result = []
+    for company, users_count, projects_count, managers_count, engineers_count in companies_with_stats:
+        result.append(schemas.CompanyWithStats(
+            id=company.id,
+            name=company.name,
+            users_count=users_count,
+            projects_count=projects_count,
+            managers_count=managers_count,
+            engineers_count=engineers_count
+        ))
+
+    return result

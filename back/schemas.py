@@ -65,3 +65,15 @@ class UserToCompanyResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CompanyWithStats(BaseModel):
+    id: int
+    name: str
+    users_count: int
+    projects_count: int
+    managers_count: int
+    engineers_count: int
+
+    class Config:
+        from_attributes = True

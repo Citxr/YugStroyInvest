@@ -11,7 +11,9 @@ router = APIRouter(prefix="/project", tags=["project"])
 
 @router.post("", response_model=schemas.ProjectCreate)
 @require_role(models.UserRole.MANAGER)
-async def create_defect(project: schemas.ProjectCreate, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+async def create_defect(project: schemas.ProjectCreate,
+                        db: Session = Depends(get_db),
+                        current_user: models.User = Depends(auth.get_current_user)):
     db_project = models.Project(name=project.name, user_manager_id=current_user.id, company_id=project.company_id)
     db.add(db_project)
     db.commit()
@@ -31,7 +33,9 @@ async def create_defect(project: schemas.ProjectCreate, db: Session = Depends(ge
 
 @router.delete("/{project_id}")
 @require_role(models.UserRole.MANAGER)
-async def delete_project(project_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+async def delete_project(project_id: int,
+                         db: Session = Depends(get_db),
+                         current_user: models.User = Depends(auth.get_current_user)):
     db_project = db.query(models.Project).filter(
         models.Project.id == project_id,
         models.Project.user_manager_id == current_user.id
@@ -43,3 +47,37 @@ async def delete_project(project_id: int, db: Session = Depends(get_db), current
     db.delete(db_project)
     db.commit()
     return {"message": "Проект удалена"}
+
+@router.get("/my-projects")
+@require_role(models.UserRole.MANAGER)
+async def get_my_projects(db: Session = Depends(get_db),
+                          current_user: models.User = Depends(auth.get_current_user),
+                          skip: int = 0,
+                          limit: int = 100
+):
+
+    projects = db.query(models.Project).filter(
+        models.Project.user_manager_id == current_user.id
+    ).offset(skip).limit(limit).all()
+
+    return projects
+
+@router.get("/my-projects/{project_id}")
+@require_role(models.UserRole.MANAGER)
+async def get_my_project(project_id: int,
+                         db: Session = Depends(get_db),
+                         current_user: models.User = Depends(auth.get_current_user)
+):
+
+    project = db.query(models.Project).filter(
+        models.Project.id == project_id,
+        models.Project.user_manager_id == current_user.id
+    ).first()
+
+    if not project:
+        raise HTTPException(
+            status_code=404,
+            detail="Проект не найден или у вас нет к нему доступа"
+        )
+
+    return project

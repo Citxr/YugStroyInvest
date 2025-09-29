@@ -31,3 +31,37 @@ async def delete_defect(defect_id: int, db: Session = Depends(get_db), current_u
     db.delete(db_defect)
     db.commit()
     return {"message": "Дефект удален"}
+
+@router.get("/my-defects")
+@require_role(models.UserRole.ENGINEER)
+async def get_my_defects(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    defects = db.query(models.Defect).filter(
+        models.Defect.user_engineer_id == current_user.id
+    ).offset(skip).limit(limit).all()
+
+    return defects
+
+@router.get("/my-defects/{defect_id}")
+@require_role(models.UserRole.ENGINEER)
+async def get_my_defect(defect_id: int,
+                         db: Session = Depends(get_db),
+                         current_user: models.User = Depends(auth.get_current_user)
+):
+
+    defect = db.query(models.Defect).filter(
+        models.Defect.id == defect_id,
+        models.Defect.user_engineer_id == current_user.id
+    ).first()
+
+    if not defect:
+        raise HTTPException(
+            status_code=404,
+            detail="Дефект не найден или у вас нет к нему доступа"
+        )
+
+    return defect
