@@ -101,7 +101,6 @@ async def add_user_to_company(
 
 
 @router.get("/my-companies", response_model=CompanyFullOut)
-@require_role(models.UserRole.CLIENT)
 async def get_full_company_info(company_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
 
     company = (
@@ -117,10 +116,14 @@ async def get_full_company_info(company_id: int, db: Session = Depends(get_db), 
         .filter(Company.id == company_id)
         .first()
     )
+
+    if current_user.role == models.UserRole.CLIENT or current_user.role != models.UserRole.ADMIN:
+        if current_user.company_id != company_id:
+            raise HTTPException(status_code=403, detail="Недостаточно прав для получения данных этой компании")
+
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
 
-    # Список менеджеров
     managers = [
         {
             "id": u.id,
@@ -131,7 +134,6 @@ async def get_full_company_info(company_id: int, db: Session = Depends(get_db), 
         for u in company.users if u.role == UserRole.MANAGER
     ]
 
-    # Список инженеров
     engineers = [
         {
             "id": u.id,
@@ -150,7 +152,6 @@ async def get_full_company_info(company_id: int, db: Session = Depends(get_db), 
         for u in company.users if u.role == UserRole.ENGINEER
     ]
 
-    # Список проектов
     projects = []
     for p in company.projects:
         projects.append({
@@ -192,3 +193,90 @@ async def get_full_company_info(company_id: int, db: Session = Depends(get_db), 
         "managers": managers,
         "engineers": engineers,
     }
+
+
+@router.delete("/{company_id}/users/{user_id}", response_model=schemas.RemoveUserFromCompanyResponse)
+@require_role(models.UserRole.ADMIN)
+async def remove_user_from_company(
+        company_id: int,
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    db_company = db.query(models.Company).filter(
+        models.Company.id == company_id
+    ).first()
+
+    if not db_company:
+        raise HTTPException(status_code=404, detail="Компания не найдена")
+
+    user_to_remove = db.query(models.User).filter(
+        models.User.id == user_id
+    ).first()
+
+    if not user_to_remove:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if user_to_remove.company_id != company_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Пользователь не состоит в указанной компании"
+        )
+
+    try:
+        user_role = user_to_remove.role.value
+
+        if user_to_remove.role == models.UserRole.MANAGER:
+            managed_projects = db.query(models.Project).filter(
+                models.Project.user_manager_id == user_id,
+                models.Project.company_id == company_id
+            ).count()
+
+            if managed_projects > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Невозможно отвязать менеджера, у которого есть проекты в компании. Сначала передайте проекты другому менеджеру."
+                )
+
+        if user_to_remove.role == models.UserRole.ENGINEER:
+            active_defects = db.query(models.Defect).filter(
+                models.Defect.user_engineer_id == user_id
+            ).join(models.Project).filter(
+                models.Project.company_id == company_id
+            ).count()
+
+            if active_defects > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Невозможно отвязать инженера, у которого есть активные дефекты в компании. Сначала перераспределите дефекты."
+                )
+
+        engineer_projects = db.query(models.Project).join(
+            models.Project.engineers
+        ).filter(
+            models.User.id == user_id,
+            models.Project.company_id == company_id
+        ).all()
+
+        for project in engineer_projects:
+            project.engineers.remove(user_to_remove)
+
+        user_to_remove.company_id = None
+        db.commit()
+        db.refresh(user_to_remove)
+
+        return schemas.RemoveUserFromCompanyResponse(
+            message="Пользователь успешно отвязан от компании",
+            user_id=user_to_remove.id,
+            company_id=company_id,
+            user_role=user_role
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при отвязке пользователя от компании: {str(e)}"
+        )
