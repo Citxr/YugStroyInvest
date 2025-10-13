@@ -24,10 +24,8 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
-        return UserInDB(**user_dict)
+def get_user(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
 
 def authenticate_user(username: str, password: str, db: Session = Depends(get_db)):
     user = get_user(db, username)
@@ -63,6 +61,6 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Se
         raise credentials_exception
     user = db.query(models.User).filter(models.User.username == token_data.username).first()
     if user is None:
-        print(f"Пользователь не найден: {token_data.email}")
+        print(f"Пользователь не найден: {token_data.username}")
         raise credentials_exception
     return user
