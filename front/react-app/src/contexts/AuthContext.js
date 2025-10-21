@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  // Настройка токена в localStorage
   useEffect(() => {
     if (token) {
       localStorage.setItem('token', token);
@@ -25,18 +24,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
-  // Проверка токена при загрузке приложения
   useEffect(() => {
     const checkAuth = async () => {
       if (token) {
         try {
-          console.log('Проверка токена:', token);
           const userData = await authAPI.getCurrentUser();
-          console.log('Пользователь найден:', userData);
           setUser(userData);
         } catch (error) {
-          console.error('Ошибка проверки токена:', error);
-          console.error('Детали ошибки:', error.response?.data);
           logout();
         }
       }
@@ -48,24 +42,17 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      console.log('Попытка входа для пользователя:', username);
       const tokenData = await authAPI.login(username, password);
-      console.log('Получен токен:', tokenData);
       
       const { access_token } = tokenData;
       setToken(access_token);
       localStorage.setItem('token', access_token);
 
-      // Получаем информацию о пользователе
-      console.log('Получение информации о пользователе...');
       const userData = await authAPI.getCurrentUser();
-      console.log('Данные пользователя:', userData);
       setUser(userData);
 
       return { success: true };
     } catch (error) {
-      console.error('Ошибка входа:', error);
-      console.error('Детали ошибки:', error.response?.data);
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Ошибка входа' 
@@ -78,7 +65,6 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.register(userData);
       return { success: true, data: response };
     } catch (error) {
-      console.error('Ошибка регистрации:', error);
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Ошибка регистрации' 

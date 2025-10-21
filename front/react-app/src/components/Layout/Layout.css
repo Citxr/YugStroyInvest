@@ -3,6 +3,8 @@
   display: flex;
   min-height: 100vh;
   background-color: var(--background-color);
+  color: var(--text-primary);
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Боковая панель */
@@ -162,6 +164,7 @@
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 .header-left {
@@ -217,6 +220,8 @@
   flex: 1;
   padding: 20px;
   background-color: var(--background-color);
+  color: var(--text-primary);
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Overlay для мобильных устройств */
@@ -231,51 +236,33 @@
 }
 
 /* Адаптивность */
-@media (min-width: 768px) {
-  .sidebar {
-    position: static;
-    left: 0;
-  }
-  
-  .main-content {
-    margin-left: 0;
-  }
-  
-  .sidebar-toggle-mobile {
-    display: none;
-  }
-  
-  .sidebar-toggle {
-    display: none;
-  }
-  
-  .sidebar-overlay {
-    display: none;
-  }
-}
-
 @media (max-width: 767px) {
   .content {
     padding: 15px;
   }
-  
+
   .header {
     padding: 10px 15px;
+    position: fixed; /* Фиксируем header на мобильных */
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 60px; /* Фиксированная высота header */
+    box-sizing: border-box;
   }
-  
+
   .page-title {
     font-size: 1.2rem;
+  }
+
+  .main-content {
+    padding-top: 60px; /* Компенсируем высоту фиксированного header */
   }
 }
 
 /* Темная тема */
-.layout.dark {
-  --background-color: #1a1a1a;
-  --card-background: #2d2d2d;
-  --text-primary: #ffffff;
-  --text-secondary: #b0b0b0;
-  --border-color: #404040;
-}
+/* Переменные тёмной темы теперь задаются глобально в App.css внутри .layout.dark */
 
 .layout.dark .header {
   background: var(--card-background);

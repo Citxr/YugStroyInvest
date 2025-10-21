@@ -9,10 +9,12 @@ const Companies = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [showRemoveUserForm, setShowRemoveUserForm] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    user_id: ''
+    user_id: '',
+    remove_user_id: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -21,22 +23,20 @@ const Companies = () => {
     if (isAdmin()) {
       fetchCompanies();
     }
-  }, []);
+  }, [isAdmin]);
 
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      // Здесь будет API вызов для получения списка компаний
-      // Пока используем моковые данные
-      setCompanies([
-        { id: 1, name: 'ООО "СтройМонтаж"', projects: 5, users: 12 },
-        { id: 2, name: 'ЗАО "ЮгСтрой"', projects: 3, users: 8 },
-        { id: 3, name: 'ИП "Строитель"', projects: 2, users: 4 },
-        { id: 4, name: 'ООО "МегаСтрой"', projects: 7, users: 18 },
-        { id: 5, name: 'АО "СтройИнвест"', projects: 4, users: 10 }
-      ]);
+      const data = await companyAPI.getAllCompanies();
+      const normalized = (data || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        projects: c.projects_count,
+        users: c.users_count,
+      }));
+      setCompanies(normalized);
     } catch (error) {
-      console.error('Ошибка загрузки компаний:', error);
       setError('Ошибка загрузки данных');
     } finally {
       setLoading(false);
@@ -48,11 +48,13 @@ const Companies = () => {
     try {
       setError('');
       setSuccess('');
-      
-      const response = await companyAPI.createCompany({
-        name: formData.name
-      });
-      
+      const name = (formData.name || '').trim();
+      if (!name) {
+        setError('Введите название компании');
+        return;
+      }
+      await companyAPI.createCompany({ name });
+
       setSuccess('Компания успешно создана');
       setFormData({ name: '' });
       setShowCreateForm(false);
@@ -68,11 +70,7 @@ const Companies = () => {
     try {
       setError('');
       setSuccess('');
-      
-      const response = await companyAPI.addUserToCompany(
-        selectedCompany.id, 
-        parseInt(formData.user_id)
-      );
+
       
       setSuccess('Пользователь успешно добавлен в компанию');
       setFormData({ user_id: '' });
@@ -98,16 +96,24 @@ const Companies = () => {
     }
   };
 
-  const handleRemoveUserFromCompany = async (companyId, userId) => {
-    if (window.confirm('Вы уверены, что хотите удалить пользователя из компании?')) {
-      try {
-        await companyAPI.removeUserFromCompany(companyId, userId);
-        setSuccess('Пользователь успешно удален из компании');
-        fetchCompanies();
-      } catch (error) {
-        console.error('Ошибка удаления пользователя:', error);
-        setError(error.response?.data?.detail || 'Ошибка удаления пользователя');
-      }
+  const handleRemoveUserSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setError('');
+      setSuccess('');
+      
+      await companyAPI.removeUserFromCompany(
+        selectedCompany.id, 
+        parseInt(formData.remove_user_id)
+      );
+      
+      setSuccess('Пользователь успешно удален из компании');
+      setFormData({ ...formData, remove_user_id: '' });
+      setShowRemoveUserForm(false);
+      setSelectedCompany(null);
+      fetchCompanies();
+    } catch (error) {
+      setError(error.response?.data?.detail || 'Ошибка удаления пользователя');
     }
   };
 
@@ -177,6 +183,15 @@ const Companies = () => {
                   Добавить пользователя
                 </button>
                 <button 
+                  className="btn btn-sm btn-outline-red"
+                  onClick={() => {
+                    setSelectedCompany(company);
+                    setShowRemoveUserForm(true);
+                  }}
+                >
+                  Удалить пользователя
+                </button>
+                <button 
                   className="btn btn-sm btn-danger"
                   onClick={() => handleDeleteCompany(company.id)}
                 >
@@ -199,7 +214,6 @@ const Companies = () => {
         ))}
       </div>
 
-      {/* Модальное окно создания компании */}
       {showCreateForm && (
         <div className="modal-overlay">
           <div className="modal">
@@ -242,7 +256,6 @@ const Companies = () => {
         </div>
       )}
 
-      {/* Модальное окно добавления пользователя */}
       {showAddUserForm && (
         <div className="modal-overlay">
           <div className="modal">
@@ -278,6 +291,48 @@ const Companies = () => {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   Добавить
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showRemoveUserForm && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Удалить пользователя из компании</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowRemoveUserForm(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleRemoveUserSubmit} className="modal-form">
+              <div className="form-group">
+                <label htmlFor="remove-user-id" className="form-label">
+                  ID пользователя для удаления
+                </label>
+                <input
+                  type="number"
+                  id="remove-user-id"
+                  name="remove_user_id"
+                  value={formData.remove_user_id}
+                  onChange={(e) => setFormData({ ...formData, remove_user_id: e.target.value })}
+                  className="form-input"
+                  required
+                />
+              </div>
+              
+              <div className="modal-actions">
+                <button type="button" className="btn btn-outline" onClick={() => setShowRemoveUserForm(false)}>
+                  Отмена
+                </button>
+                <button type="submit" className="btn btn-danger">
+                  Удалить
                 </button>
               </div>
             </form>

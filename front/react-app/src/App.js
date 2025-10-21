@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import Companies from './pages/Companies/Companies';
 import Projects from './pages/Projects/Projects';
 import Defects from './pages/Defects/Defects';
+import Company from './pages/Company/Company';
 import Profile from './pages/Profile/Profile';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import './App.css';
@@ -32,6 +33,7 @@ function App() {
                 <Route path="companies" element={<Companies />} />
                 <Route path="projects" element={<Projects />} />
                 <Route path="defects" element={<Defects />} />
+                <Route path="company" element={<Company />} />
                 <Route path="profile" element={<Profile />} />
               </Route>
             </Routes>

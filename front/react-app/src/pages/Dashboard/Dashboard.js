@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { companyAPI, projectAPI, defectAPI } from '../../services/api';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  const { user, isAdmin, isManager, isEngineer } = useAuth();
+  const { user, isAdmin, isManager, isEngineer, isClient } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     companies: 0,
     projects: 0,
@@ -21,22 +23,76 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Здесь можно добавить API вызовы для получения статистики
-      // Пока используем моковые данные
-      setStats({
-        companies: 5,
-        projects: 12,
-        defects: 8,
-        engineers: 15
-      });
 
-      setRecentActivity([
-        { id: 1, type: 'project', message: 'Создан новый проект "Жилой комплекс"', time: '2 часа назад' },
-        { id: 2, type: 'defect', message: 'Исправлен дефект в проекте "Офисное здание"', time: '4 часа назад' },
-        { id: 3, type: 'engineer', message: 'Добавлен новый инженер в команду', time: '1 день назад' },
-        { id: 4, type: 'company', message: 'Зарегистрирована новая компания', time: '2 дня назад' }
-      ]);
+      if (isAdmin()) {
+        const all = await companyAPI.getAllCompanies();
+        const companyIds = (all || []).map(c => c.id);
+        const details = await Promise.all(companyIds.map(id => companyAPI.getCompanyInfo(id)));
+
+        const companiesCount = companyIds.length;
+        const projectsCount = details.reduce((sum, c) => sum + (c.projects?.length || 0), 0);
+        const defectsCount = details.reduce(
+          (sum, c) => sum + (c.projects || []).reduce((s, p) => s + (p.defects?.length || 0), 0),
+          0
+        );
+        const engineersCount = details.reduce((sum, c) => sum + (c.engineers?.length || 0), 0);
+
+        setStats({
+          companies: companiesCount,
+          projects: projectsCount,
+          defects: defectsCount,
+          engineers: engineersCount,
+        });
+      } else if (isManager()) {
+        const projects = await projectAPI.getMyProjects(0, 100);
+        // Для дефектов суммируем по проектам через company/my-companies, т.к. отдельного API нет
+        let defectsCount = 0;
+        let engineersSet = new Set();
+        if (user?.company_id) {
+          const company = await companyAPI.getCompanyInfo(user.company_id);
+          const myProjectIds = new Set(projects.map(p => p.id));
+          defectsCount = (company.projects || [])
+            .filter(p => myProjectIds.has(p.id))
+            .reduce((sum, p) => sum + (p.defects?.length || 0), 0);
+          (company.projects || [])
+            .filter(p => myProjectIds.has(p.id))
+            .forEach(p => (p.engineers || []).forEach(e => engineersSet.add(e.id)));
+        }
+        setStats({
+          companies: 1,
+          projects: projects.length,
+          defects: defectsCount,
+          engineers: engineersSet.size,
+        });
+      } else if (isEngineer()) {
+        const myDefects = await defectAPI.getMyDefects(0, 100);
+        const projectIds = new Set((myDefects || []).map(d => d.project_id));
+        setStats({
+          companies: 0,
+          projects: projectIds.size,
+          defects: (myDefects || []).length,
+          engineers: 0,
+        });
+      } else if (isClient()) {
+        if (user?.company_id) {
+          const company = await companyAPI.getCompanyInfo(user.company_id);
+          const projects = company.projects || [];
+          const defectsCount = projects.reduce((sum, p) => sum + (p.defects?.length || 0), 0);
+          const engineersCount = (company.engineers || []).length;
+          setStats({
+            companies: 1,
+            projects: projects.length,
+            defects: defectsCount,
+            engineers: engineersCount,
+          });
+        } else {
+          setStats({ companies: 0, projects: 0, defects: 0, engineers: 0 });
+        }
+      } else {
+        setStats({ companies: 0, projects: 0, defects: 0, engineers: 0 });
+      }
+
+      setRecentActivity([]);
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
     } finally {
@@ -94,15 +150,16 @@ const Dashboard = () => {
       </div>
 
       <div className="dashboard-content">
-        {/* Статистика */}
         <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon building-icon">🏢</div>
-            <div className="stat-content">
-              <div className="stat-number">{stats.companies}</div>
-              <div className="stat-label">Компаний</div>
+          {!isEngineer() && (
+            <div className="stat-card">
+              <div className="stat-icon building-icon">🏢</div>
+              <div className="stat-content">
+                <div className="stat-number">{stats.companies}</div>
+                <div className="stat-label">Компаний</div>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="stat-card">
             <div className="stat-icon construction-icon">🏗️</div>
@@ -120,39 +177,59 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-icon">👷‍♂️</div>
-            <div className="stat-content">
-              <div className="stat-number">{stats.engineers}</div>
-              <div className="stat-label">Инженеров</div>
+          {!isEngineer() && (
+            <div className="stat-card">
+              <div className="stat-icon">👷‍♂️</div>
+              <div className="stat-content">
+                <div className="stat-number">{stats.engineers}</div>
+                <div className="stat-label">Инженеров</div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Быстрые действия */}
         <div className="quick-actions">
           <h2 className="section-title">Быстрые действия</h2>
           <div className="actions-grid">
             {isAdmin() && (
               <>
-                <button className="action-btn">
+                <button
+                    className="action-btn"
+                    onClick={() => navigate('/companies')}
+                >
                   <span className="action-icon">🏢</span>
                   <span className="action-text">Управление компаниями</span>
                 </button>
-                <button className="action-btn">
-                  <span className="action-icon">👥</span>
-                  <span className="action-text">Добавить пользователя</span>
+                <button
+                    className="action-btn"
+                    onClick={() => navigate('/projects')}
+                >
+                  <span className="action-icon">🏗️</span>
+                  <span className="action-text">Управление проектами</span>
+                </button>
+                <button
+                    className="action-btn"
+                    onClick={() => navigate('/defects')}
+                >
+                  <span className="action-icon">🔧</span>
+                  <span className="action-text">Управление дефектами</span>
                 </button>
               </>
             )}
             
             {isManager() && (
               <>
-                <button className="action-btn">
+                <button
+                  className="action-btn"
+                  onClick={() => navigate('/projects')}
+                >
                   <span className="action-icon">🏗️</span>
                   <span className="action-text">Создать проект</span>
                 </button>
-                <button className="action-btn">
+                <button
+                  className="action-btn"
+                  onClick={() => navigate('/defects')}
+                >
                   <span className="action-icon">👷‍♂️</span>
                   <span className="action-text">Назначить инженера</span>
                 </button>
@@ -161,20 +238,37 @@ const Dashboard = () => {
             
             {isEngineer() && (
               <>
-                <button className="action-btn">
+                <button
+                  className="action-btn"
+                  onClick={() => navigate('/defects?create=1')}
+                >
                   <span className="action-icon">🔧</span>
                   <span className="action-text">Создать дефект</span>
                 </button>
-                <button className="action-btn">
+                <button
+                  className="action-btn"
+                  onClick={() => navigate('/defects')}
+                >
                   <span className="action-icon">📋</span>
                   <span className="action-text">Мои задачи</span>
+                </button>
+              </>
+            )}
+
+            {isClient() && (
+              <>
+                <button
+                  className="action-btn"
+                  onClick={() => navigate('/company')}
+                >
+                  <span className="action-icon">🏢</span>
+                  <span className="action-text">Моя компания</span>
                 </button>
               </>
             )}
           </div>
         </div>
 
-        {/* Последняя активность */}
         <div className="recent-activity">
           <h2 className="section-title">Последняя активность</h2>
           <div className="activity-list">

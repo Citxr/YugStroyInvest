@@ -100,7 +100,7 @@ class ManagerOut(BaseModel):
 class ProjectOut(BaseModel):
     id: int
     name: str
-    manager_id: int
+    manager_id: Optional[int] = None
     engineers: List[EngineerOut] = []
     defects: List[DefectOut] = []
 
@@ -117,6 +117,13 @@ class CompanyFullOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class CompanyListItemOut(BaseModel):
+    id: int
+    name: str
+    projects_count: int
+    users_count: int
 
 class RemoveUserFromCompanyResponse(BaseModel):
     message: str

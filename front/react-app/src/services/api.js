@@ -15,10 +15,8 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log('API запрос:', config.url, 'Токен:', token ? 'есть' : 'нет');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('Добавлен заголовок Authorization:', `Bearer ${token}`);
     }
     return config;
   },
@@ -99,6 +97,12 @@ export const companyAPI = {
   // Получение полной информации о компании
   getCompanyInfo: async (companyId) => {
     const response = await api.get(`/company/my-companies?company_id=${companyId}`);
+    return response.data;
+  },
+
+  // Список всех компаний (для админа)
+  getAllCompanies: async () => {
+    const response = await api.get('/company/all');
     return response.data;
   },
 };
@@ -196,48 +200,6 @@ export const defectAPI = {
       engineer_id: engineerId,
     });
     return response.data;
-  },
-};
-
-// Утилиты для работы с API
-export const apiUtils = {
-  // Обработка ошибок API
-  handleError: (error) => {
-    if (error.response) {
-      // Сервер ответил с кодом ошибки
-      return {
-        message: error.response.data?.detail || 'Произошла ошибка сервера',
-        status: error.response.status,
-      };
-    } else if (error.request) {
-      // Запрос был отправлен, но ответа не получено
-      return {
-        message: 'Сервер недоступен. Проверьте подключение к интернету.',
-        status: 0,
-      };
-    } else {
-      // Что-то пошло не так при настройке запроса
-      return {
-        message: 'Произошла ошибка при отправке запроса',
-        status: -1,
-      };
-    }
-  },
-
-  // Проверка статуса ответа
-  isSuccess: (status) => {
-    return status >= 200 && status < 300;
-  },
-
-  // Форматирование данных для отправки
-  formatFormData: (data) => {
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-      if (data[key] !== null && data[key] !== undefined) {
-        formData.append(key, data[key]);
-      }
-    });
-    return formData;
   },
 };
 

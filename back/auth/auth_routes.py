@@ -4,9 +4,9 @@ from sys import prefix
 from fastapi import APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
 
-from back import schemas, models
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from back import schemas, models
 from back.auth import auth
 from back.auth.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from back.database import get_db
@@ -38,7 +38,7 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @router.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username == form_data.username).first()
-    if not user:
+    if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверное имя или пароль",

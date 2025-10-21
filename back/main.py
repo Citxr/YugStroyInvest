@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from .auth import token_routes
-from .company import company_crud_routes
-from .defect import defect_crud_routes
-from .project import project_crud_routes
 from fastapi.middleware.cors import CORSMiddleware
+from back.auth import token_routes
+from back.company import company_crud_routes
+from back.defect import defect_crud_routes
+from back.project import project_crud_routes
 app = FastAPI()
 app.include_router(token_routes)
 app.include_router(company_crud_routes)

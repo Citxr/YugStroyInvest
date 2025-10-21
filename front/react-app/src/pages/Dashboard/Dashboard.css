@@ -1,4 +1,5 @@
-/* Стили для панели управления */
+/* Стили для панели управления - только уникальные стили */
+
 .dashboard {
   max-width: 1200px;
   margin: 0 auto;
@@ -36,29 +37,6 @@
   gap: 30px;
 }
 
-/* Статистика */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.stat-card {
-  background: var(--card-background);
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: var(--shadow);
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
 .stat-icon {
   font-size: 2.5rem;
   width: 60px;
@@ -69,10 +47,6 @@
   background: linear-gradient(135deg, var(--accent-color), #e67e00);
   border-radius: 12px;
   color: white;
-}
-
-.stat-content {
-  flex: 1;
 }
 
 .stat-number {
@@ -96,48 +70,10 @@
   box-shadow: var(--shadow);
 }
 
-.section-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--primary-color);
-  margin: 0 0 20px 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.section-title::before {
-  content: '';
-  width: 4px;
-  height: 20px;
-  background: var(--accent-color);
-  border-radius: 2px;
-}
-
 .actions-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
-}
-
-.action-btn {
-  background: var(--background-color);
-  border: 2px solid var(--border-color);
-  border-radius: 10px;
-  padding: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-}
-
-.action-btn:hover {
-  border-color: var(--primary-color);
-  background: rgba(44, 85, 48, 0.05);
-  transform: translateY(-2px);
 }
 
 .action-icon {
@@ -205,43 +141,33 @@
   .welcome-section {
     padding: 20px;
   }
-  
+
   .welcome-title {
     font-size: 1.5rem;
   }
-  
+
   .welcome-description {
     font-size: 1rem;
   }
-  
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-  }
-  
-  .stat-card {
-    padding: 20px;
-    gap: 15px;
-  }
-  
+
   .stat-icon {
     font-size: 2rem;
     width: 50px;
     height: 50px;
   }
-  
+
   .stat-number {
     font-size: 1.5rem;
   }
-  
+
   .actions-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .action-btn {
     padding: 15px;
   }
-  
+
   .quick-actions,
   .recent-activity {
     padding: 20px;
@@ -252,13 +178,13 @@
   .dashboard {
     padding: 0 10px;
   }
-  
+
   .stat-card {
     flex-direction: column;
     text-align: center;
     gap: 10px;
   }
-  
+
   .activity-item {
     flex-direction: column;
     text-align: center;

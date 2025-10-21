@@ -21,7 +21,8 @@ const Layout = () => {
     { path: '/companies', label: 'Компании', icon: '🏢', roles: ['admin'] },
     { path: '/projects', label: 'Проекты', icon: '🏗️', roles: ['admin', 'manager'] },
     { path: '/defects', label: 'Дефекты', icon: '🔧', roles: ['admin', 'manager', 'engineer'] },
-    { path: '/profile', label: 'Профиль', icon: '👤', roles: ['admin', 'manager', 'engineer', 'client'] },
+    { path: '/company', label: 'Моя Компания', icon: '🏢', roles: ['client'] },
+    { path: '/profile', label: 'Профиль', icon: '👤', roles: ['admin', 'manager', 'engineer', 'client'] }
   ];
 
   const filteredMenuItems = menuItems.filter(item => 
@@ -43,16 +44,17 @@ const Layout = () => {
       {/* Боковая панель */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h2 className="logo">
-            <span className="construction-icon">🏗️</span>
-            ЮгСтройИнвест
-          </h2>
-          <button 
+          <button
             className="sidebar-toggle"
             onClick={() => setSidebarOpen(false)}
           >
             ✕
           </button>
+          <h2 className="logo">
+            <span className="construction-icon">🏗️</span>
+            ЮгСтройИнвест
+          </h2>
+
         </div>
 
         <nav className="sidebar-nav">
@@ -92,7 +94,6 @@ const Layout = () => {
         </div>
       </aside>
 
-      {/* Основной контент */}
       <main className="main-content">
         <header className="header">
           <div className="header-left">
@@ -123,7 +124,6 @@ const Layout = () => {
         </div>
       </main>
 
-      {/* Overlay для мобильных устройств */}
       {sidebarOpen && (
         <div 
           className="sidebar-overlay"

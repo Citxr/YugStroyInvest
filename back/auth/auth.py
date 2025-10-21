@@ -5,7 +5,7 @@ from fastapi import Depends,HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
-from ..schemas import UserInDB, TokenData
+from back.schemas import UserInDB, TokenData
 from back import models
 from sqlalchemy.orm import Session
 from back.database import get_db

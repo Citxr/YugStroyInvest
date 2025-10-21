@@ -6,7 +6,7 @@ from back.auth import auth
 from back.database import get_db
 from back.decorators import require_role
 from back.models import Company, Project, Defect, UserRole
-from back.schemas import CompanyFullOut
+from back.schemas import CompanyFullOut, CompanyListItemOut
 
 router = APIRouter(prefix="/company", tags=["company"])
 
@@ -193,6 +193,25 @@ async def get_full_company_info(company_id: int, db: Session = Depends(get_db), 
         "managers": managers,
         "engineers": engineers,
     }
+
+
+@router.get("/all", response_model=list[CompanyListItemOut])
+@require_role(models.UserRole.ADMIN)
+async def list_companies(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    companies = db.query(models.Company).all()
+
+    result: list[CompanyListItemOut] = []
+    for c in companies:
+        projects_count = db.query(models.Project).filter(models.Project.company_id == c.id).count()
+        users_count = db.query(models.User).filter(models.User.company_id == c.id).count()
+        result.append(CompanyListItemOut(
+            id=c.id,
+            name=c.name,
+            projects_count=projects_count,
+            users_count=users_count
+        ))
+
+    return result
 
 
 @router.delete("/{company_id}/users/{user_id}", response_model=schemas.RemoveUserFromCompanyResponse)

@@ -10,13 +10,13 @@ router = APIRouter(prefix="/project", tags=["project"])
 
 
 @router.post("", response_model=schemas.ProjectCreate)
-@require_role(models.UserRole.MANAGER)
+@require_role([models.UserRole.ADMIN, models.UserRole.MANAGER])
 async def create_project(project: schemas.ProjectCreate,
                         db: Session = Depends(get_db),
                         current_user: models.User = Depends(auth.get_current_user)):
     db_project = models.Project(
         name=project.name,
-        user_manager_id=current_user.id,
+        user_manager_id=current_user.id if current_user.role == models.UserRole.MANAGER else None,
         company_id=project.company_id
     )
     db.add(db_project)
@@ -35,13 +35,12 @@ async def create_project(project: schemas.ProjectCreate,
     return db_project
 
 @router.delete("/{project_id}")
-@require_role(models.UserRole.MANAGER)
+@require_role([models.UserRole.ADMIN, models.UserRole.MANAGER])
 async def delete_project(project_id: int,
                          db: Session = Depends(get_db),
                          current_user: models.User = Depends(auth.get_current_user)):
     db_project = db.query(models.Project).filter(
         models.Project.id == project_id,
-        models.Project.user_manager_id == current_user.id
     ).first()
 
     if not db_project:
@@ -52,7 +51,7 @@ async def delete_project(project_id: int,
     return {"message": "Проект удалён"}
 
 @router.get("/my-projects")
-@require_role(models.UserRole.MANAGER)
+@require_role([models.UserRole.MANAGER, models.UserRole.CLIENT])
 async def get_my_projects(db: Session = Depends(get_db),
                           current_user: models.User = Depends(auth.get_current_user),
                           skip: int = 0,
@@ -60,7 +59,7 @@ async def get_my_projects(db: Session = Depends(get_db),
 ):
 
     projects = db.query(models.Project).filter(
-        models.Project.user_manager_id == current_user.id
+        models.Project.company_id == current_user.company_id,
     ).offset(skip).limit(limit).all()
 
     return projects
@@ -87,7 +86,7 @@ async def get_my_project(project_id: int,
 
 
 @router.delete("/{project_id}/manager", response_model=schemas.RemoveProjectFromManagerResponse)
-@require_role([models.UserRole.ADMIN, models.UserRole.MANAGER])
+@require_role(models.UserRole.ADMIN)
 async def remove_manager_from_project(
         project_id: int,
         db: Session = Depends(get_db),
@@ -138,7 +137,7 @@ async def remove_manager_from_project(
 
 
 @router.patch("/{project_id}/assign-manager", response_model=schemas.AssignProjectToManagerResponse)
-@require_role([models.UserRole.ADMIN, models.UserRole.MANAGER])
+@require_role(models.UserRole.ADMIN)
 async def assign_project_to_manager(
         project_id: int,
         manager_data: schemas.AssignProjectToManager,

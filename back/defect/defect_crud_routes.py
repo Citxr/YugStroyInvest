@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from back import schemas, models
 from back.auth import auth
@@ -40,7 +40,10 @@ async def get_my_defects(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    defects = db.query(models.Defect).filter(
+    defects = db.query(models.Defect).options(
+        joinedload(models.Defect.engineer),
+        joinedload(models.Defect.project)
+    ).filter(
         models.Defect.user_engineer_id == current_user.id
     ).offset(skip).limit(limit).all()
 
@@ -53,7 +56,10 @@ async def get_my_defect(defect_id: int,
                          current_user: models.User = Depends(auth.get_current_user)
 ):
 
-    defect = db.query(models.Defect).filter(
+    defect = db.query(models.Defect).options(
+        joinedload(models.Defect.engineer),
+        joinedload(models.Defect.project)
+    ).filter(
         models.Defect.id == defect_id,
         models.Defect.user_engineer_id == current_user.id
     ).first()
