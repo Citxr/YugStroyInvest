@@ -154,10 +154,20 @@ async def get_full_company_info(company_id: int, db: Session = Depends(get_db), 
 
     projects = []
     for p in company.projects:
+        manager_data = None
+        if p.manager:
+            manager_data = {
+                "id": p.manager.id,
+                "username": p.manager.username,
+                "email": p.manager.email,
+                "projects": []
+            }
+        
         projects.append({
             "id": p.id,
             "name": p.name,
             "manager_id": p.user_manager_id,
+            "manager": manager_data,
             "engineers": [
                 {
                     "id": e.id,

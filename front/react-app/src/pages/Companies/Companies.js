@@ -71,6 +71,10 @@ const Companies = () => {
       setError('');
       setSuccess('');
 
+      await companyAPI.addUserToCompany(
+        selectedCompany.id,
+        parseInt(formData.user_id)
+      );
       
       setSuccess('Пользователь успешно добавлен в компанию');
       setFormData({ user_id: '' });

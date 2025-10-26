@@ -5,7 +5,7 @@ import {companyAPI, defectAPI, projectAPI} from "../../services/api";
 
 const Profile = () => {
   const { user, logout } = useAuth();
-  const [setFormData] = useState({
+  const [formData, setFormData] = useState({
     username: '',
     email: '',
     role: '',

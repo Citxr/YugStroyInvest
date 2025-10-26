@@ -89,11 +89,16 @@ const Projects = () => {
     try {
       setError('');
       setSuccess('');
-      
+
+      // Парсим engineer_ids из строки в массив чисел
+      const engineerIds = formData.engineer_ids 
+        ? formData.engineer_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+        : [];
+
       await projectAPI.createProject({
         name: formData.name,
         company_id: formData.company_id,
-        engineer_ids: formData.engineer_ids
+        engineer_ids: engineerIds
       });
       
       setSuccess('Проект успешно создан');
@@ -123,8 +128,8 @@ const Projects = () => {
       setError('');
       setSuccess('');
       
+      // Парсим engineer_ids из строки в массив чисел
       const engineerIds = formData.engineer_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-      
       await projectAPI.addEngineersToProject(selectedProject.id, engineerIds);
       
       setSuccess('Инженеры успешно добавлены в проект');
@@ -143,8 +148,8 @@ const Projects = () => {
       setError('');
       setSuccess('');
 
+      // Парсим remove_engineer_ids из строки в массив чисел
       const engineerIds = formData.remove_engineer_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-
       await projectAPI.removeEngineersFromProject(selectedProject.id, engineerIds);
 
       setSuccess('Инженеры успешно удалены из проекта');
@@ -327,6 +332,12 @@ const Projects = () => {
               <div className="stat-item">
                 <span className="stat-icon">🏢</span>
                 <span className="stat-text">Компания: {project.company_name}</span>
+              </div>
+            )}
+            {project.manager && (
+              <div className="stat-item">
+                <span className="stat-icon">👨‍💼</span>
+                <span className="stat-text">Менеджер: {project.manager.username}</span>
               </div>
             )}
               <div className="stat-item">

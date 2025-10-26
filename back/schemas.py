@@ -101,6 +101,7 @@ class ProjectOut(BaseModel):
     id: int
     name: str
     manager_id: Optional[int] = None
+    manager: Optional[ManagerOut] = None
     engineers: List[EngineerOut] = []
     defects: List[DefectOut] = []
 

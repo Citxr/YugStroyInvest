@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 
 from back import schemas, models
 from back.auth import auth
@@ -22,11 +23,18 @@ async def create_project(project: schemas.ProjectCreate,
     db.add(db_project)
 
     if project.engineer_ids:
-        engineers = db.query(models.User).filter(
-            models.User.id.in_(project.engineer_ids),
-            models.User.role == models.UserRole.ENGINEER,
-            models.User.company_id == current_user.company_id
-        ).all()
+        # Для админов проверяем только роль инженера, для менеджеров - еще и компанию
+        if current_user.role == models.UserRole.ADMIN:
+            engineers = db.query(models.User).filter(
+                models.User.id.in_(project.engineer_ids),
+                models.User.role == models.UserRole.ENGINEER
+            ).all()
+        else:
+            engineers = db.query(models.User).filter(
+                models.User.id.in_(project.engineer_ids),
+                models.User.role == models.UserRole.ENGINEER,
+                models.User.company_id == current_user.company_id
+            ).all()
         db_project.engineers.extend(engineers)
 
     db.commit()
@@ -50,7 +58,7 @@ async def delete_project(project_id: int,
     db.commit()
     return {"message": "Проект удалён"}
 
-@router.get("/my-projects")
+@router.get("/my-projects", response_model=List[schemas.ProjectOut])
 @require_role([models.UserRole.MANAGER, models.UserRole.CLIENT])
 async def get_my_projects(db: Session = Depends(get_db),
                           current_user: models.User = Depends(auth.get_current_user),

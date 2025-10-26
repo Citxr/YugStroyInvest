@@ -141,7 +141,7 @@ export const projectAPI = {
   // Назначение менеджера на проект
   assignProjectToManager: async (projectId, managerId) => {
     const response = await api.patch(`/project/${projectId}/assign-manager`, {
-      new_manager_id: managerId,
+      manager_id: managerId,
     });
     return response.data;
   },
